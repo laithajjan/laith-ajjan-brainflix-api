@@ -1,19 +1,35 @@
+// Required modules
 const express = require("express");
-var cors = require("cors");
-const app = express();
-const videoRoutes = require('./routes/videos');
+const cors = require("cors");
+const dotenv = require("dotenv");
+const videoRoutes = require("./routes/videos");
 
-//configuration
-require('dotenv').config();
+// Configuration
+dotenv.config();
 const PORT = process.env.PORT || 8080;
 
-//middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static("public"));
+// Initialize app
+const app = express();
 
-app.use("/", videoRoutes);
+// Middleware setup
+const configureMiddleware = () => {
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.static("public"));
+  app.use("/", videoRoutes);
+};
 
-app.listen(8080, function() {
-    console.log("Server is running on 8080");
-})
+// Start server
+const startServer = () => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on ${PORT}`);
+  });
+};
+
+// Main function to setup and start the server
+const main = () => {
+  configureMiddleware();
+  startServer();
+};
+
+main();
