@@ -3,70 +3,63 @@ const fs = require("fs").promises;
 const routes = express.Router();
 const videoDataPath = "data/video-details.json";
 
-// Middleware for routes
-routes.use((request, response, next) => {
-    next();
-});
+const handleErrors = (error, res, message) => {
+  console.error(error);
+  res.status(500).send(message);
+};
 
-// Express main page route
-routes.get("/", (request, response) => {
-    response.send("Express Main Page");
-});
-
-// Function to read and parse video data
-async function readAndParseVideoData() {
+const readAndParseVideoData = async () => {
+  try {
     const videoInfoData = await fs.readFile(videoDataPath, "utf8");
     return JSON.parse(videoInfoData);
-}
+  } catch (error) {
+    throw new Error("Error reading video data");
+  }
+};
 
-// Function to write video data
-async function writeVideoData(parsedVideoInfo) {
+const writeVideoData = async (parsedVideoInfo) => {
+  try {
     const stringifiedVideoInfo = JSON.stringify(parsedVideoInfo, null, 2);
     await fs.writeFile(videoDataPath, stringifiedVideoInfo);
-}
+  } catch (error) {
+    throw new Error("Error writing video data");
+  }
+};
 
-// Route to get all video details
-routes.get("/videos", async (request, response) => {
-    try {
-        const parsedVideoInfo = await readAndParseVideoData();
-        response.json(parsedVideoInfo);
-    } catch (error) {
-        console.error(error);
-        response.status(500).send("Error reading video data");
-    }
+routes.get("/", (req, res) => res.send("Express Main Page"));
+
+routes.get("/videos", async (req, res) => {
+  try {
+    res.json(await readAndParseVideoData());
+  } catch (error) {
+    handleErrors(error, res, error.message);
+  }
 });
 
-// Route to get video details by ID
-routes.get("/videos/:id", async (request, response) => {
-    try {
-        const videoId = request.params.id;
-        const parsedVideoInfo = await readAndParseVideoData();
-        const selectedVideo = parsedVideoInfo.find(video => video.id === videoId);
+routes.get("/videos/:id", async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const parsedVideoInfo = await readAndParseVideoData();
+    const selectedVideo = parsedVideoInfo.find(video => video.id === videoId);
 
-        if (selectedVideo) {
-            response.json(selectedVideo);
-        } else {
-            response.status(404).send("Video not found");
-        }
-    } catch (error) {
-        console.error(error);
-        response.status(500).send("Error reading video data");
-    }
+    selectedVideo
+      ? res.json(selectedVideo)
+      : res.status(404).send("Video not found");
+  } catch (error) {
+    handleErrors(error, res, error.message);
+  }
 });
 
-// Route to add a new video
-routes.post("/videos", async (request, response) => {
-    try {
-        const newData = (request.body);
-        const parsedVideoInfo = await readAndParseVideoData();
-        parsedVideoInfo.push(newData);
-        await writeVideoData(parsedVideoInfo);
-        response.status(201).send("New Video Added");
-    } catch (error) {
-        console.error(error);
-        response.status(500).send("Error adding new video");
-    }
+routes.post("/videos", async (req, res) => {
+  try {
+    const newData = req.body;
+    const parsedVideoInfo = await readAndParseVideoData();
+    parsedVideoInfo.push(newData);
+    await writeVideoData(parsedVideoInfo);
+    res.status(201).send("New Video Added");
+  } catch (error) {
+    handleErrors(error, res, error.message);
+  }
 });
 
-// Export the routes module
 module.exports = routes;
